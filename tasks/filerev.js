@@ -9,7 +9,9 @@ var convert = require('convert-source-map');
 module.exports = function (grunt) {
   grunt.registerMultiTask('filerev', 'File revisioning based on content hashing', function () {
     var target = this.target;
-    var filerev = grunt.filerev || {summary: {}};
+    var filerev = grunt.filerev || {
+      summary: {}
+    };
     var options = this.options({
       algorithm: 'md5',
       length: 8
@@ -29,7 +31,7 @@ module.exports = function (grunt) {
           var stat = fs.lstatSync(el.dest);
 
           if (stat && !stat.isDirectory()) {
-            grunt.fail.fatal('Destination ' + el.dest  + ' for target ' + target + ' is not a directory');
+            grunt.fail.fatal('Destination ' + el.dest + ' for target ' + target + ' is not a directory');
           }
         } catch (err) {
           grunt.verbose.writeln('Destination dir ' + el.dest + ' does not exists for target ' + target + ': creating');
@@ -49,15 +51,22 @@ module.exports = function (grunt) {
         var suffix = hash.slice(0, options.length);
         var ext = path.extname(file);
         var newName;
+        var processSummaryName;
 
-        if (typeof options.process === 'function') {
-          newName = options.process(path.basename(file, ext), suffix, ext.slice(1));
+        if (typeof options.processFile === 'function') {
+          newName = options.processFile(path.basename(file, ext), suffix, ext.slice(1));
         } else {
-          if (options.process) {
-            grunt.log.error('options.process must be a function; ignoring');
+          if (options.processFile) {
+            grunt.log.error('options.processBefore must be a function; ignoring');
           }
 
           newName = [path.basename(file, ext), suffix, ext.slice(1)].join('.');
+        }
+
+        if (typeof options.processSummary === 'function') {
+          processSummaryName = options.processSummary(path.basename(file, ext), suffix, ext.slice(1));
+        } else {
+          processSummaryName = newName;
         }
 
         var resultPath;
@@ -87,7 +96,9 @@ module.exports = function (grunt) {
             }
 
             // rewrite the sourceMappingURL in files
-            var fileContents = grunt.file.read(resultPath, {encoding: 'utf8'});
+            var fileContents = grunt.file.read(resultPath, {
+              encoding: 'utf8'
+            });
             // use regex that matches single-line and multi-line sourcemap urls
             // note: this will ignore inline base64-encoded sourcemaps
             var matches = convert.mapFileCommentRegex.exec(fileContents);
@@ -95,14 +106,16 @@ module.exports = function (grunt) {
             if (matches) {
               var sourceMapFile = matches[1] || matches[2]; // 1st is single line, 2nd is multiline
               var newSrcMap = fileContents.replace(sourceMapFile, path.basename(resultPathMap));
-              grunt.file.write(resultPath, newSrcMap, {encoding: 'utf8'});
+              grunt.file.write(resultPath, newSrcMap, {
+                encoding: 'utf8'
+              });
               sourceMap = true;
             }
           }
         }
 
-        filerev.summary[path.normalize(file)] = path.join(dirname, newName);
-        grunt.verbose.writeln(chalk.green('✔ ') + file + chalk.gray(' changed to ') + newName);
+        filerev.summary[path.normalize(file)] = path.join(dirname, processSummaryName);
+        grunt.verbose.writeln(chalk.green('✔ ') + file + chalk.gray(' changed to ') + processSummaryName);
 
         if (sourceMap) {
           filerev.summary[path.normalize(file + '.map')] = path.join(dirname, newName + '.map');

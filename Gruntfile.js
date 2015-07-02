@@ -57,11 +57,20 @@ module.exports = function (grunt) {
       },
       withFilenameProcessing: {
         options: {
-          process: function (name, hash, ext) {
+          processFile: function (name, hash, ext) {
             return name + '-processed-' + hash + '.' + ext;
           }
         },
         src: ['test/fixtures/another.png'],
+        dest: 'test/tmp'
+      },
+      withSummaryProcessing: {
+        options: {
+          processSummary: function (name, hash, ext) {
+            return name + '-processed-' + hash + '.' + ext;
+          }
+        },
+        src: ['test/fixtures/anothersummary.png'],
         dest: 'test/tmp'
       },
       withSummaryAttributeName: {
@@ -102,6 +111,7 @@ module.exports = function (grunt) {
     'copy',
     'filerev',
     'checkSummary',
+    'checkSummaryOfProcessedSummary',
     'simplemocha',
     'clean'
   ]);
@@ -109,6 +119,12 @@ module.exports = function (grunt) {
   grunt.registerTask('checkSummary', 'Check that summary attribute is correctly created', function () {
     var src = path.normalize('test/fixtures/file.png');
     var expected = path.normalize('test/tmp/file.26365248.png');
+    assert.equal(grunt.filerev.summary[src], expected);
+  });
+
+  grunt.registerTask('checkSummaryOfProcessedSummary', 'Check that processed summary attribute is correctly created', function () {
+    var src = path.normalize('test/fixtures/anothersummary.png');
+    var expected = path.normalize('test/tmp/anothersummary-processed-92279d3f.png');
     assert.equal(grunt.filerev.summary[src], expected);
   });
 };
